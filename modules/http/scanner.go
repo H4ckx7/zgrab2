@@ -41,7 +41,8 @@ type Flags struct {
 	zgrab2.TLSFlags
 	Method       string `long:"method" default:"GET" description:"Set HTTP request method type"`
 	Endpoint     string `long:"endpoint" default:"/" description:"Send an HTTP request to an endpoint"`
-	UserAgent    string `long:"user-agent" default:"Mozilla/5.0 zgrab/0.x" description:"Set a custom user agent"`
+	Hname        string `long:"HostName" default:"" description:"Set Http Request Host Name"` //Set Custom HostName 2019-8-22 15:27:16 0x007er
+	UserAgent    string `long:"user-agent" default:"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/76.0.3809.100 Safari/537.36" description:"Set a custom user agent"`
 	RetryHTTPS   bool   `long:"retry-https" description:"If the initial request fails, reconnect and try with HTTPS."`
 	MaxSize      int    `long:"max-size" default:"256" description:"Max kilobytes to read in response to an HTTP request"`
 	MaxRedirects int    `long:"max-redirects" default:"0" description:"Max number of redirects to follow"`
@@ -280,10 +281,12 @@ func (scanner *Scanner) newHTTPScan(t *zgrab2.ScanTarget) *scan {
 	ret.client.Transport = ret.transport
 	ret.client.Jar = nil // Don't send or receive cookies (otherwise use CookieJar)
 	ret.client.Timeout = scanner.config.Timeout
-	host := t.Domain
+
+	host := t.IP.String() //Use ip prior to domain DNS(if available) 2019-8-22 15:22:47 0x007er
 	if host == "" {
-		host = t.IP.String()
+		host = t.Domain
 	}
+
 	ret.url = getHTTPURL(scanner.config.UseHTTPS, host, uint16(scanner.config.BaseFlags.Port), scanner.config.Endpoint)
 
 	return &ret
@@ -298,6 +301,7 @@ func (scan *scan) Grab() *zgrab2.ScanError {
 	}
 	// TODO: Headers from input?
 	request.Header.Set("Accept", "*/*")
+	request.Host = scan.scanner.config.Hname //Set Custom HostName 2019-8-22 15:27:16 0x007er
 	resp, err := scan.client.Do(request)
 	if resp != nil && resp.Body != nil {
 		defer resp.Body.Close()
